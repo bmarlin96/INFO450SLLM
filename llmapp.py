@@ -1,50 +1,41 @@
 import streamlit as st
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
-st.title("Simple Chatbot 🤖💬")
-st.write("Ask me anything!")
+st.title("Local Falcon Chatbot 🦅💬")
+st.write("Chat with a small open model — no API keys required!")
 
 @st.cache_resource
 def load_model():
-    tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-medium")
-    model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-medium")
+    tokenizer = AutoTokenizer.from_pretrained("tiiuae/falcon-rw-1b")
+    model = AutoModelForCausalLM.from_pretrained("tiiuae/falcon-rw-1b")
     return tokenizer, model
 
 tokenizer, model = load_model()
 
-# Track the conversation history
-if "chat_history_ids" not in st.session_state:
-    st.session_state.chat_history_ids = None
-if "past_user_inputs" not in st.session_state:
-    st.session_state.past_user_inputs = []
+if "history" not in st.session_state:
+    st.session_state.history = ""
 
-user_input = st.text_input("You:", key="input")
+user_input = st.text_area("You:", height=100)
 
-if user_input:
-    # Encode the input
-    input_ids = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors="pt")
+if st.button("Send") and user_input:
+    prompt = st.session_state.history + f"\nUser: {user_input}\nAssistant:"
 
-    # Append to previous conversation if exists
-    bot_input_ids = torch.cat([st.session_state.chat_history_ids, input_ids], dim=-1) if st.session_state.chat_history_ids is not None else input_ids
-
-    # Generate a response
-    chat_history_ids = model.generate(
-        bot_input_ids,
-        max_length=1000,
-        pad_token_id=tokenizer.eos_token_id,
+    input_ids = tokenizer(prompt, return_tensors="pt").input_ids
+    output_ids = model.generate(
+        input_ids,
+        max_new_tokens=100,
         do_sample=True,
-        top_k=50,
-        top_p=0.95,
-        temperature=0.8
+        temperature=0.7,
+        top_p=0.9,
+        pad_token_id=tokenizer.eos_token_id
     )
 
-    # Decode and display
-    response = tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
-    st.session_state.chat_history_ids = chat_history_ids
-    st.session_state.past_user_inputs.append((user_input, response))
+    output_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+    reply = output_text.split("Assistant:")[-1].strip()
 
-# Display chat history
-for i, (user_msg, bot_msg) in enumerate(reversed(st.session_state.past_user_inputs[-5:]), 1):
-    st.markdown(f"**You:** {user_msg}")
-    st.markdown(f"**Bot:** {bot_msg}")
+    # Save history
+    st.session_state.history += f"\nUser: {user_input}\nAssistant: {reply}"
+
+    st.markdown(f"**🧑 You:** {user_input}")
+    st.markdown(f"**🤖 Assistant:** {reply}")
