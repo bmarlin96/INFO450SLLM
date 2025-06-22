@@ -7,8 +7,8 @@ st.write("Chat with a small open model — no API keys required!")
 
 @st.cache_resource
 def load_model():
-    tokenizer = AutoTokenizer.from_pretrained("tiiuae/falcon-rw-1b")
-    model = AutoModelForCausalLM.from_pretrained("tiiuae/falcon-rw-1b")
+    tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-neo-125M")
+    model = AutoModelForCausalLM.from_pretrained("EleutherAI/gpt-neo-125M")
     return tokenizer, model
 
 tokenizer, model = load_model()
