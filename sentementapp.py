@@ -7,7 +7,7 @@ st.write("Enter text and get a sentiment prediction (positive or negative).")
 @st.cache_resource
 def load_pipeline():
     return pipeline("sentiment-analysis")
-
+#fun
 nlp = load_pipeline()
 
 # User input
